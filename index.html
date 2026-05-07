@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petualangan Embege - Game Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Inter:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        .marker-font {
+            font-family: 'Permanent+Marker', cursive;
+        }
+
+        .board-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            padding: 20px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.1);
+            position: relative;
+            display: grid;
+            grid-template-columns: 200px 1fr 200px;
+            grid-template-rows: auto 1fr auto;
+            gap: 15px;
+        }
+
+        .card-slot {
+            border: 3px dashed #cbd5e1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 10px;
+            transition: all 0.3s;
+            background: #f8fafc;
+        }
+
+        .game-card {
+            width: 140px;
+            height: 190px;
+            background: #00bcd4;
+            color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .employee {
+            width: 60px;
+            height: 60px;
+            background: #fbbf24;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            border: 2px solid #b45309;
+            transition: all 0.2s;
+        }
+
+        .employee:hover {
+            transform: scale(1.1);
+        }
+
+        .status-box {
+            border: 2px solid #334155;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .bonus-btn {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .logo-text {
+            grid-column: span 3;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .logo-text h1 {
+            font-size: 3rem;
+            color: #f97316;
+            text-shadow: 2px 2px 0px #0891b2;
+            transform: rotate(-2deg);
+            margin: 0;
+            line-height: 1;
+        }
+
+        .logo-text h2 {
+            font-size: 4rem;
+            color: #0891b2;
+            margin-top: -10px;
+            transform: rotate(2deg);
+        }
+
+        .message-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            display: none;
+        }
+
+        /* Mobile adaptivity */
+        @media (max-width: 768px) {
+            .board-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+            .logo-text h1 { font-size: 2rem; }
+            .logo-text h2 { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="board-container">
+        <!-- Logo -->
+        <div class="logo-text marker-font">
+            <h1>PETUALANGAN</h1>
+            <h2>EMBEGE</h2>
+        </div>
+
+        <!-- Left Column: Profit & Modal -->
+        <div class="flex flex-col gap-4">
+            <div class="status-box">
+                <p class="font-bold text-gray-500 uppercase text-xs">PROFIT</p>
+                <p id="profit-val" class="text-3xl font-bold text-green-600">0</p>
+            </div>
+            <div class="status-box">
+                <p class="font-bold text-gray-500 uppercase text-xs">MODAL</p>
+                <p id="modal-val" class="text-3xl font-bold text-blue-600">15</p>
+            </div>
+        </div>
+
+        <!-- Middle Column: Deck, Center Area, Dapur -->
+        <div class="flex flex-col gap-6">
+            <!-- Deck Area -->
+            <div class="flex flex-col items-center">
+                <p class="marker-font text-xl mb-2">DECK KARTU ORDER</p>
+                <div id="deck-slot" class="card-slot w-48 h-32 relative">
+                    <div id="deck-count" class="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">5</div>
+                    <div id="deck-visual" class="game-card shadow-lg rotate-2 translate-x-1 flex items-center justify-center" style="background: #334155;">
+                        <div class="text-center opacity-50 font-bold text-xs uppercase tracking-widest">DECK ORDER</div>
+                    </div>
+                    <button onclick="drawCard()" id="draw-btn" class="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded font-bold transition-all">AMBIL ORDER</button>
+                </div>
+            </div>
+
+            <!-- Active Order Area -->
+            <div id="active-area" class="card-slot min-h-[250px] bg-gray-50 border-gray-300">
+                <p id="placeholder-text" class="text-gray-400 italic">Tempatkan Kartu & Employee di sini</p>
+                <div id="current-order-display" class="flex gap-4 items-center"></div>
+                <div id="current-employees-display" class="flex gap-2 mt-4 flex-wrap justify-center"></div>
+                
+                <div id="action-ui" class="hidden mt-4 flex flex-col items-center gap-2 w-full">
+                    <div id="skill-meter" class="text-sm font-bold px-4 py-1 rounded-full transition-colors">
+                        Total Skill: <span id="total-skill">0</span> / Target: <span id="target-skill">0</span>
+                    </div>
+                    <p id="condition-msg" class="text-[10px] font-bold uppercase"></p>
+                    <button id="execute-btn" onclick="executeOrder()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed">KIRIM ORDER</button>
+                </div>
+            </div>
+
+            <!-- Dapur Area -->
+            <div class="flex flex-col items-center">
+                <p class="marker-font text-xl mb-2">DAPUR</p>
+                <div id="dapur-area" class="card-slot w-full min-h-[120px] flex-row gap-4">
+                    <!-- Employees will stay here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Budget & Bonus -->
+        <div class="flex flex-col gap-4">
+            <div class="status-box bg-slate-800 text-white">
+                <p class="font-bold uppercase text-[10px] leading-tight">GOVERNMENT BUDGET</p>
+                <p class="text-2xl">∞</p>
+            </div>
+
+            <div class="bg-white border-2 border-gray-800 p-4 rounded">
+                <p class="marker-font text-center text-xl mb-3">BONUS</p>
+                
+                <button onclick="buyBonus('motor')" class="bonus-btn bg-purple-100 hover:bg-purple-200 border-l-4 border-purple-500">
+                    <div class="font-bold text-xs">M. Listrik (+3)</div>
+                    <div class="flex justify-between text-[10px]">
+                        <span>💰 Harga: 3</span>
+                    </div>
+                </button>
+
+                <button onclick="buyBonus('laptop')" class="bonus-btn bg-blue-100 hover:bg-blue-200 border-l-4 border-blue-500">
+                    <div class="font-bold text-xs">Laptop (+2)</div>
+                    <div class="flex justify-between text-[10px]">
+                        <span>💰 Harga: 2</span>
+                    </div>
+                </button>
+
+                <button onclick="buyBonus('kaos')" class="bonus-btn bg-pink-100 hover:bg-pink-200 border-l-4 border-pink-500">
+                    <div class="font-bold text-xs">Kaos Kaki (+1)</div>
+                    <div class="flex justify-between text-[10px]">
+                        <span>💰 Harga: 1</span>
+                    </div>
+                </button>
+                
+                <div class="mt-4 p-2 bg-yellow-50 rounded border border-yellow-200 text-[9px] italic leading-tight">
+                    *Syarat: Skill HARUS LEBIH BESAR (>) dari Order.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="message-overlay">
+        <div class="bg-white p-8 rounded-xl max-w-md w-full text-center shadow-2xl">
+            <h2 id="modal-title" class="marker-font text-4xl mb-4">SETUP GAME</h2>
+            <p id="modal-body" class="mb-6 text-gray-600">Siapkan strategi terbaikmu!</p>
+            <button id="modal-btn" onclick="closeModal()" class="bg-orange-500 text-white px-8 py-3 rounded-full font-bold text-lg hover:scale-105 transition-transform">MULAI</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            modal: 15,
+            profit: 0,
+            deck: [],
+            currentOrder: null,
+            employees: [
+                { id: 1, skill: 2 },
+                { id: 2, skill: 2 },
+                { id: 3, skill: 3 },
+                { id: 4, skill: 3 },
+                { id: 5, skill: 4 }
+            ],
+            selectedEmployees: [],
+            activeBonuses: 0,
+            isGameOver: false
+        };
+
+        const cardPool = [
+            { name: "Sekolah A", order: 10, profit: 5 },
+            { name: "Sekolah B", order: 12, profit: 6 },
+            { name: "Sekolah C", order: 14, profit: 7 },
+            { name: "Sekolah D", order: 8, profit: 4 },
+            { name: "Sekolah E", order: 15, profit: 8 }
+        ];
+
+        // Initialization
+        window.onload = () => {
+            initGame();
+        };
+
+        function initGame() {
+            gameState.deck = [...cardPool].sort(() => Math.random() - 0.5);
+            gameState.modal = 15;
+            gameState.profit = 0;
+            gameState.isGameOver = false;
+            gameState.currentOrder = null;
+            gameState.selectedEmployees = [];
+            gameState.activeBonuses = 0;
+            
+            showModal("SETUP GAME", "Pegawai tidak akan habis (reusable). Ingat: Skill harus LEBIH BESAR dari Order!", "MULAI BERMAIN");
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('modal-val').innerText = gameState.modal;
+            document.getElementById('profit-val').innerText = gameState.profit;
+            document.getElementById('deck-count').innerText = gameState.deck.length;
+
+            // Dapur area: Pegawai yang tidak sedang dipilih
+            const dapur = document.getElementById('dapur-area');
+            dapur.innerHTML = '';
+            gameState.employees.forEach(emp => {
+                if (!gameState.selectedEmployees.includes(emp.id)) {
+                    const el = document.createElement('div');
+                    el.className = 'employee';
+                    el.innerHTML = `<span>${emp.skill}</span>`;
+                    if (gameState.currentOrder) {
+                        el.onclick = () => selectEmployee(emp.id);
+                    }
+                    dapur.appendChild(el);
+                }
+            });
+
+            // Active Area
+            const orderArea = document.getElementById('current-order-display');
+            const actionUi = document.getElementById('action-ui');
+            const empArea = document.getElementById('current-employees-display');
+            const placeholder = document.getElementById('placeholder-text');
+            
+            if (gameState.currentOrder) {
+                placeholder.style.display = 'none';
+                orderArea.innerHTML = `
+                    <div class="game-card">
+                        <div class="marker-font text-xl">${gameState.currentOrder.name}</div>
+                        <div>
+                            <div class="text-sm">Order: <span class="font-bold">${gameState.currentOrder.order}</span></div>
+                            <div class="text-sm text-yellow-200">Wajib > ${gameState.currentOrder.order}</div>
+                            <div class="text-sm">Profit: <span class="font-bold">${gameState.currentOrder.profit}</span></div>
+                        </div>
+                    </div>
+                    <div class="text-4xl text-gray-300">←</div>
+                `;
+                
+                empArea.innerHTML = '';
+                let totalSkill = gameState.activeBonuses;
+                gameState.selectedEmployees.forEach(id => {
+                    const emp = gameState.employees.find(e => e.id === id);
+                    totalSkill += emp.skill;
+                    const el = document.createElement('div');
+                    el.className = 'employee border-green-500 bg-green-100';
+                    el.innerHTML = `<span>${emp.skill}</span>`;
+                    el.onclick = () => deselectEmployee(id);
+                    empArea.appendChild(el);
+                });
+
+                if (gameState.activeBonuses > 0) {
+                    const bonusTag = document.createElement('div');
+                    bonusTag.className = 'bg-yellow-400 px-3 py-1 rounded text-xs font-bold animate-pulse';
+                    bonusTag.innerText = `BONUS: +${gameState.activeBonuses}`;
+                    empArea.appendChild(bonusTag);
+                }
+
+                actionUi.classList.remove('hidden');
+                const skillMeter = document.getElementById('skill-meter');
+                const condMsg = document.getElementById('condition-msg');
+                const execBtn = document.getElementById('execute-btn');
+                
+                document.getElementById('total-skill').innerText = totalSkill;
+                document.getElementById('target-skill').innerText = gameState.currentOrder.order;
+                
+                // Revisi Aturan: Skill > Order
+                if (totalSkill > gameState.currentOrder.order) {
+                    skillMeter.className = "text-sm font-bold px-4 py-1 rounded-full bg-green-200 text-green-800";
+                    condMsg.innerText = "KONDISI TERPENUHI (SKILL > ORDER)";
+                    condMsg.className = "text-[10px] font-bold text-green-600";
+                    execBtn.disabled = false;
+                } else {
+                    skillMeter.className = "text-sm font-bold px-4 py-1 rounded-full bg-red-100 text-red-800";
+                    condMsg.innerText = "SKILL HARUS LEBIH BESAR DARI ORDER";
+                    condMsg.className = "text-[10px] font-bold text-red-500";
+                    execBtn.disabled = true;
+                }
+
+                document.getElementById('draw-btn').disabled = true;
+                document.getElementById('draw-btn').classList.add('opacity-50');
+            } else {
+                placeholder.style.display = 'block';
+                orderArea.innerHTML = '';
+                empArea.innerHTML = '';
+                actionUi.classList.add('hidden');
+                document.getElementById('draw-btn').disabled = false;
+                document.getElementById('draw-btn').classList.remove('opacity-50');
+            }
+
+            if (gameState.deck.length === 0 && !gameState.currentOrder) {
+                document.getElementById('deck-visual').style.display = 'none';
+            }
+        }
+
+        function drawCard() {
+            if (gameState.deck.length > 0) {
+                gameState.currentOrder = gameState.deck.shift();
+                gameState.selectedEmployees = [];
+                gameState.activeBonuses = 0;
+                updateUI();
+            }
+        }
+
+        function selectEmployee(id) {
+            if (!gameState.selectedEmployees.includes(id)) {
+                gameState.selectedEmployees.push(id);
+                updateUI();
+            }
+        }
+
+        function deselectEmployee(id) {
+            gameState.selectedEmployees = gameState.selectedEmployees.filter(eid => eid !== id);
+            updateUI();
+        }
+
+        function buyBonus(type) {
+            if (!gameState.currentOrder) return;
+            
+            let cost = 0;
+            let skillAdd = 0;
+
+            if (type === 'motor') { cost = 3; skillAdd = 3; }
+            else if (type === 'laptop') { cost = 2; skillAdd = 2; }
+            else if (type === 'kaos') { cost = 1; skillAdd = 1; }
+
+            if (gameState.modal + gameState.profit >= cost) {
+                if (gameState.modal >= cost) {
+                    gameState.modal -= cost;
+                } else {
+                    const sisa = cost - gameState.modal;
+                    gameState.modal = 0;
+                    gameState.profit -= sisa;
+                }
+                gameState.activeBonuses += skillAdd;
+                updateUI();
+            } else {
+                showSimpleMessage("Uang tidak cukup!");
+            }
+        }
+
+        function executeOrder() {
+            let totalSkill = gameState.activeBonuses;
+            gameState.selectedEmployees.forEach(id => {
+                totalSkill += gameState.employees.find(e => e.id === id).skill;
+            });
+
+            // Validasi akhir
+            if (totalSkill > gameState.currentOrder.order) {
+                gameState.profit += gameState.currentOrder.profit;
+                
+                showSimpleMessage(`Order Berhasil! Profit +${gameState.currentOrder.profit}`);
+                gameState.currentOrder = null;
+                gameState.selectedEmployees = []; // Pegawai kembali ke dapur
+                gameState.activeBonuses = 0;
+
+                checkEndGame();
+            }
+            updateUI();
+        }
+
+        function checkEndGame() {
+            if (gameState.deck.length === 0 && !gameState.currentOrder) {
+                showModal("MISI SELESAI!", `Selamat! Seluruh sekolah telah terlayani. Total Keuangan: ${gameState.modal + gameState.profit}`, "MAIN LAGI");
+                gameState.isGameOver = true;
+            }
+            
+            // Cek kondisi kalah: Jika uang 0 dan skill maksimal semua pegawai tidak bisa > Order
+            const maxEmployeeSkill = gameState.employees.reduce((a, b) => a + b.skill, 0);
+            if (gameState.currentOrder && (maxEmployeeSkill + 0 <= gameState.currentOrder.order) && (gameState.modal + gameState.profit < 1)) {
+                showModal("GAME OVER", "Uang habis dan skill pegawai tidak cukup untuk melewati target order.", "COBA LAGI");
+                gameState.isGameOver = true;
+            }
+        }
+
+        function showModal(title, body, btnText) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerText = body;
+            document.getElementById('modal-btn').innerText = btnText;
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        function closeModal() {
+            if (gameState.isGameOver) {
+                initGame();
+            }
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+
+        function showSimpleMessage(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-lg z-[100] animate-bounce text-sm font-bold';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+    </script>
+</body>
+</html>
